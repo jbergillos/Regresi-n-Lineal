@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Regresión Lineal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --ink: #1a1a18;
+    --ink-muted: #6b6860;
+    --accent: #c8533a;
+    --accent-light: #f0e8e5;
+    --accent2: #3a6fc8;
+    --border: #e0dbd4;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  header {
+    max-width: 900px;
+    margin: 0 auto 3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1rem;
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+
+  header span {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .layout {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 680px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* --- INPUT PANEL --- */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+  }
+
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin-bottom: 1rem;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.4rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+
+  .input-row input {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg);
+    color: var(--ink);
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  .input-row input::-webkit-outer-spin-button,
+  .input-row input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .input-row input:focus {
+    outline: none;
+    border-color: var(--accent2);
+    background: #fff;
+  }
+
+  .btn-remove {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    color: var(--ink-muted);
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .btn-remove:hover { border-color: var(--accent); color: var(--accent); }
+
+  .col-headers {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .col-headers span {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--ink-muted);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .btn-add {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.8rem;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 3px;
+    width: 100%;
+    padding: 0.4rem 0.8rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-add:hover { border-color: var(--accent2); color: var(--accent2); background: #eef2fc; }
+
+  .btn-calc {
+    margin-top: 1.2rem;
+    width: 100%;
+    padding: 0.7rem;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-calc:hover { background: var(--accent); }
+
+  .btn-clear {
+    margin-top: 0.5rem;
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* --- RIGHT COLUMN --- */
+  .right-col { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  /* --- STATS GRID --- */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .stat-card.active::before { background: var(--accent2); }
+  .stat-card.equation { grid-column: 1 / -1; }
+  .stat-card.equation::before { background: var(--accent); }
+
+  .stat-name {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-formula {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-muted);
+    margin-bottom: 0.4rem;
+    font-style: italic;
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    transition: color 0.3s;
+  }
+
+  .stat-card.equation .stat-value {
+    font-size: 1.15rem;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+
+  .stat-value.placeholder { color: var(--border); font-size: 1.2rem; }
+
+  .pearson-bar {
+    margin-top: 0.6rem;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .pearson-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .pearson-label {
+    margin-top: 0.25rem;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--ink-muted);
+  }
+
+  /* --- CHART --- */
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+  }
+
+  .chart-wrap { position: relative; height: 300px; }
+
+  /* --- ERROR --- */
+  .error-msg {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    background: var(--accent-light);
+    border-radius: 3px;
+    padding: 0.5rem 0.8rem;
+    margin-top: 0.8rem;
+    display: none;
+  }
+
+  .error-msg.show { display: block; }
+
+  /* --- N badge --- */
+  .n-badge {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.1rem 0.6rem;
+    color: var(--ink-muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Regresión Lineal</h1>
+  <span>Análisis estadístico · Pearson</span>
+</header>
+
+<div class="layout">
+
+  <!-- INPUT PANEL -->
+  <div class="panel">
+    <div class="panel-label">Datos de entrada</div>
+    <div class="col-headers">
+      <span>x</span>
+      <span>y</span>
+      <span></span>
+    </div>
+    <div id="rows"></div>
+    <div class="error-msg" id="error-msg"></div>
+    <button class="btn-add" onclick="addRow()">+ Añadir fila</button>
+    <button class="btn-calc" onclick="calculate()">Calcular →</button>
+    <button class="btn-clear" onclick="clearAll()">Limpiar todo</button>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-col">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card" id="card-mx">
+        <div class="stat-name">Media de x</div>
+        <div class="stat-formula">x̄ = (Σxᵢ) / n</div>
+        <div class="stat-value placeholder" id="val-mx">—</div>
+      </div>
+      <div class="stat-card" id="card-my">
+        <div class="stat-name">Media de y</div>
+        <div class="stat-formula">ȳ = (Σyᵢ) / n</div>
+        <div class="stat-value placeholder" id="val-my">—</div>
+      </div>
+      <div class="stat-card" id="card-cov">
+        <div class="stat-name">Covarianza</div>
+        <div class="stat-formula">σxy = Σ(xᵢ-x̄)(yᵢ-ȳ) / n</div>
+        <div class="stat-value placeholder" id="val-cov">—</div>
+      </div>
+      <div class="stat-card" id="card-r">
+        <div class="stat-name">Correlación Pearson</div>
+        <div class="stat-formula">r = σxy / (σx · σy)</div>
+        <div class="stat-value placeholder" id="val-r">—</div>
+        <div class="pearson-bar"><div class="pearson-fill" id="pearson-fill"></div></div>
+        <div class="pearson-label" id="pearson-label"></div>
+      </div>
+      <div class="stat-card equation" id="card-eq">
+        <div class="stat-name">Ecuación de la recta de regresión</div>
+        <div class="stat-formula">m = σxy / σx²  ·  n = ȳ − m·x̄</div>
+        <div class="stat-value placeholder" id="val-eq">ŷ = m·x + n</div>
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div class="panel-label" style="margin:0">Diagrama de dispersión</div>
+        <span class="n-badge" id="n-badge">n = 0</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── DEFAULT DATA ──────────────────────────────────────────────
+const defaultData = [
+  [1, 2.1], [2, 3.8], [3, 5.2], [4, 4.9],
+  [5, 7.1], [6, 6.8], [7, 8.5], [8, 9.1]
+];
+
+// ── CHART SETUP ───────────────────────────────────────────────
+const ctx = document.getElementById('chart').getContext('2d');
+let chart = new Chart(ctx, {
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'Datos',
+        data: [],
+        backgroundColor: '#3a6fc8',
+        borderColor: '#3a6fc8',
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        order: 2
+      },
+      {
+        label: 'Regresión',
+        data: [],
+        type: 'line',
+        borderColor: '#c8533a',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0,
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'nearest' },
+    plugins: {
+      legend: {
+        labels: {
+          font: { family: 'DM Mono', size: 11 },
+          color: '#6b6860',
+          boxWidth: 12
+        }
+      },
+      tooltip: {
+        backgroundColor: '#1a1a18',
+        titleFont: { family: 'DM Mono', size: 10 },
+        bodyFont: { family: 'DM Mono', size: 11 },
+        callbacks: {
+          label: ctx => {
+            const p = ctx.raw;
+            return ctx.datasetIndex === 0
+              ? ` (${p.x}, ${p.y})`
+              : ` ŷ = ${p.y.toFixed(3)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#e0dbd4' },
+        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#6b6860' }
+      },
+      y: {
+        grid: { color: '#e0dbd4' },
+        ticks: { font: { family: 'DM Mono', size: 10 }, color: '#6b6860' }
+      }
+    }
+  }
+});
+
+// ── ROW MANAGEMENT ────────────────────────────────────────────
+function addRow(x = '', y = '') {
+  const container = document.getElementById('rows');
+  const div = document.createElement('div');
+  div.className = 'input-row';
+  div.innerHTML = `
+    <input type="number" step="any" placeholder="x" value="${x}">
+    <input type="number" step="any" placeholder="y" value="${y}">
+    <button class="btn-remove" onclick="this.parentElement.remove()" title="Eliminar">×</button>
+  `;
+  container.appendChild(div);
+  div.querySelector('input').focus();
+}
+
+function clearAll() {
+  document.getElementById('rows').innerHTML = '';
+  resetStats();
+  defaultData.forEach(([x, y]) => addRow(x, y));
+}
+
+function resetStats() {
+  ['mx','my','cov','r','eq'].forEach(k => {
+    const el = document.getElementById('val-' + k);
+    el.textContent = k === 'eq' ? 'ŷ = m·x + n' : '—';
+    el.classList.add('placeholder');
+    document.getElementById('card-' + k).classList.remove('active');
+  });
+  document.getElementById('pearson-fill').style.width = '0%';
+  document.getElementById('pearson-label').textContent = '';
+  document.getElementById('n-badge').textContent = 'n = 0';
+  chart.data.datasets[0].data = [];
+  chart.data.datasets[1].data = [];
+  chart.update('none');
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function fmt(n, d = 4) {
+  if (!isFinite(n)) return 'N/D';
+  return parseFloat(n.toFixed(d)).toString();
+}
+
+function pearsonInterpret(r) {
+  const a = Math.abs(r);
+  const dir = r >= 0 ? 'positiva' : 'negativa';
+  if (a >= 0.9) return `Correlación muy fuerte ${dir}`;
+  if (a >= 0.7) return `Correlación fuerte ${dir}`;
+  if (a >= 0.5) return `Correlación moderada ${dir}`;
+  if (a >= 0.3) return `Correlación débil ${dir}`;
+  return 'Sin correlación significativa';
+}
+
+function calculate() {
+  const rows = document.querySelectorAll('#rows .input-row');
+  const pairs = [];
+
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const xv = inputs[0].value.trim();
+    const yv = inputs[1].value.trim();
+    if (xv !== '' && yv !== '') {
+      const xn = parseFloat(xv), yn = parseFloat(yv);
+      if (!isNaN(xn) && !isNaN(yn)) pairs.push([xn, yn]);
+    }
+  });
+
+  if (pairs.length < 2) {
+    showError('Se necesitan al menos 2 pares de datos válidos.');
+    return;
+  }
+
+  const n = pairs.length;
+  const xs = pairs.map(p => p[0]);
+  const ys = pairs.map(p => p[1]);
+
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+
+  const cov = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / n;
+  const varX = xs.reduce((s, x) => s + (x - mx) ** 2, 0) / n;
+  const varY = ys.reduce((s, y) => s + (y - my) ** 2, 0) / n;
+
+  const sigX = Math.sqrt(varX);
+  const sigY = Math.sqrt(varY);
+  const r = (sigX === 0 || sigY === 0) ? 0 : cov / (sigX * sigY);
+
+  const m = varX === 0 ? 0 : cov / varX;
+  const b = my - m * mx;
+
+  // Update stat cards
+  const activate = id => {
+    document.getElementById('card-' + id).classList.add('active');
+  };
+
+  const setVal = (id, txt) => {
+    const el = document.getElementById('val-' + id);
+    el.textContent = txt;
+    el.classList.remove('placeholder');
+    activate(id);
+  };
+
+  setVal('mx', fmt(mx));
+  setVal('my', fmt(my));
+  setVal('cov', fmt(cov));
+  setVal('r', fmt(r));
+
+  const sign = b >= 0 ? '+' : '−';
+  setVal('eq', `ŷ = ${fmt(m)}·x ${sign} ${fmt(Math.abs(b))}`);
+
+  // Pearson bar
+  const pct = Math.abs(r) * 100;
+  document.getElementById('pearson-fill').style.width = pct + '%';
+  document.getElementById('pearson-label').textContent = pearsonInterpret(r);
+
+  // Badge
+  document.getElementById('n-badge').textContent = `n = ${n}`;
+
+  // Chart
+  const scatterData = pairs.map(([x, y]) => ({ x, y }));
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const pad = (maxX - minX) * 0.1 || 1;
+  const lineData = [
+    { x: minX - pad, y: m * (minX - pad) + b },
+    { x: maxX + pad, y: m * (maxX + pad) + b }
+  ];
+
+  chart.data.datasets[0].data = scatterData;
+  chart.data.datasets[1].data = lineData;
+  chart.update();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+defaultData.forEach(([x, y]) => addRow(x, y));
+calculate();
+</script>
+</body>
+</html>
